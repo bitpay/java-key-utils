@@ -25,24 +25,24 @@ import com.google.bitcoin.core.Utils;
 
 public class KeyUtils {
 	
+	// used in private methods at bottom of this file
 	final private static char[] hexArray = "0123456789abcdef".toCharArray();
 	
 	public static String generatePem() throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
 	
 		ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-		KeyPairGenerator g = KeyPairGenerator.getInstance("ECDSA", "BC");
-		g.initialize(ecSpec, new SecureRandom());
-		KeyPair pair = g.generateKeyPair();  // format of keys = PKCS#8, keys are hex
-		
+		KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
+		kpGenerator.initialize(ecSpec, new SecureRandom());
+		KeyPair pair = kpGenerator.generateKeyPair();  // format of keys = PKCS#8, keys are in hex
 		
 		StringWriter strWriter = new StringWriter();
 		JcaPEMWriter pemWriter = new JcaPEMWriter(strWriter);
-		
 		pemWriter.writeObject(pair);
 		pemWriter.close();
 		
-		return strWriter.toString();
+		String pem = strWriter.toString();
+		return pem;
 	}
 	
 	public static String getCompressPubKeyFromPem(String pem) throws IOException {
@@ -51,30 +51,37 @@ public class KeyUtils {
 		JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 		
 		StringReader strReader = new StringReader(pem);
-		PEMParser pemParse = new PEMParser(strReader);
-		Object obj= pemParse.readObject();
-		pemParse.close();
+		PEMParser pemParser = new PEMParser(strReader);
+		Object keyObject = pemParser.readObject();
+		pemParser.close();
 		
-		KeyPair kp = converter.getKeyPair((PEMKeyPair) obj);
+		KeyPair keys = converter.getKeyPair((PEMKeyPair) keyObject);
 		
-		String pubKeyFull = kp.getPublic().toString();
-		int indexX = pubKeyFull.indexOf("X: ") + 3; 
-		int indexY = pubKeyFull.indexOf("Y: ") + 3; 
-		String xCoord = pubKeyFull.substring(indexX, indexX + 64); 
-		String yCoord = pubKeyFull.substring(indexY, indexY + 64).toUpperCase();
+		String fullPublicKey = keys.getPublic().toString();
+		int indexX = fullPublicKey.indexOf("X: ") + 3; 
+		int indexY = fullPublicKey.indexOf("Y: ") + 3; 
 		
-		// Only need final digit of Y-coordinate to check if even or odd for prefix to compressed pub key
-		int yFinalNum = Integer.parseInt(yCoord.substring(yCoord.length()-1));
+		String xCoord = fullPublicKey.substring(indexX, indexX + 64);
+		xCoord = xCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace 
+		String xCoord64 = checkHas64(xCoord); // make sure x-coordinate is 64 chars long
+		
+		// only need the end of the y-coordinate
+		String yCoordEnd = fullPublicKey.substring(indexY+60).toUpperCase();
+		yCoordEnd = yCoordEnd.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace
+		
+		// Only need final digit of Y-coordinate to check if even or odd
+		// for prefix to compressed public key
+		Long yFinalNumber = Long.parseLong(yCoordEnd.substring(yCoordEnd.length()-1), 16);
 		
 		String prefix;
-		if (yFinalNum % 2 == 1) {
-			prefix = "03";
+		if (yFinalNumber % 2 == 1) {
+			prefix = "03"; // put 03 prefix if y is odd
 		}
 		else {
-			prefix = "02";
+			prefix = "02"; // put 02 prefix if y is even
 		}
 		
-		return prefix + xCoord.toUpperCase();
+		return prefix + xCoord64.toUpperCase();
 		
 	}
 	
@@ -194,6 +201,16 @@ public class KeyUtils {
 
         return new String(hexChars);
     }
+	
+	private static String checkHas64(String str) {
+		String str2 = str;
+		if (str2.length() % 2 == 1 && str2.length() < 64)
+			str2 = "0" + str2;
+		while (str2.length() < 64)
+			str2 = "00" + str2;
+		
+		return str2;
+	}
 	
 
 }
