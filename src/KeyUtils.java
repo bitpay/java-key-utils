@@ -43,7 +43,7 @@ public class KeyUtils {
 
 	public static String getCompressPubKeyFromPem(String pem) throws IOException {
 
-		KeyPair keys = parsePEM(pem);
+		KeyPair keys = keyPairFromPEM(pem);
 
 		String[] valuesXY = getPublicKeyValuesXY(keys);
 		String xVal = valuesXY[0];
@@ -52,8 +52,8 @@ public class KeyUtils {
 		// only need the end of the y-coordinate
 		String yCoordEnd = yVal.substring(60).toUpperCase();
 
-		// Only need final digit of Y-coordinate to check if even or odd
-		// for prefix to compressed public key
+		// only need final digit of Y-coordinate to check if even or odd
+		// for prefix of compressed public key
 		Long yFinalNumber = Long.parseLong(yCoordEnd.substring(yCoordEnd.length()-1), 16);
 
 		String prefix;
@@ -70,12 +70,12 @@ public class KeyUtils {
 
 	public static String getPrivateKeyFromPem(String pem) throws IOException {
 
-		KeyPair keys = parsePEM(pem);
+		KeyPair keys = keyPairFromPEM(pem);
 
 		String fullPrivateKey = keys.getPrivate().toString();
 		int startKeyIndex = fullPrivateKey.indexOf("S: ") + 3;
 		String privateKey = fullPrivateKey.substring(startKeyIndex, startKeyIndex + 64);
-		privateKey = privateKey.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace
+		privateKey = privateKey.replaceAll("\n", "").replaceAll(" ", ""); // remove unwanted whitespace
 		privateKey = checkHas64(privateKey);
 		return privateKey.toUpperCase();
 	}
@@ -100,7 +100,7 @@ public class KeyUtils {
 		byte[] bytesPubKey4 = Utils.doubleDigest(bytesPubKey3);
 
 		// Step 5
-		// Substring of first 4 bytes (first 8 chars)
+		// Substring of first 4 bytes (first 8 characters)
 		String step4Hex = bytesToHex(bytesPubKey4);
 		String step5 = step4Hex.substring(0, 8);
 
@@ -119,25 +119,13 @@ public class KeyUtils {
 	public static String signMsgWithPem(String msg, String pem) throws IOException {
 		String privKey = getPrivateKeyFromPem(pem);
 		
-		KeyPair keys = parsePEM(pem);
+		KeyPair keys = keyPairFromPEM(pem);
 		String[] valuesXY = getPublicKeyValuesXY(keys);
 		String xVal = valuesXY[0];
 		String yVal = valuesXY[1];
-		//ECPoint ecPoint = new ECPoint(new BigInteger(xVal, 16), new BigInteger(yVal, 16));
+
 		ECKey key = new ECKey(new BigInteger(privKey, 16), new BigInteger(xVal+yVal, 16));
-
 		return sign(key, msg);
-	}
-
-	private static String sign(ECKey key, String input) {
-		byte[] data = input.getBytes();
-
-		Sha256Hash hash = Sha256Hash.create(data);
-		ECDSASignature sig = key.sign(hash, null);
-
-		byte[] bytes = sig.encodeToDER();
-
-		return bytesToHex(bytes);
 	}
 
 	// *******************************************
@@ -202,7 +190,7 @@ public class KeyUtils {
 		return pair;
 	}
 	
-	private static KeyPair parsePEM(String pem) throws IOException {
+	private static KeyPair keyPairFromPEM(String pem) throws IOException {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 		JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
@@ -222,17 +210,28 @@ public class KeyUtils {
 		
 		int indexX = fullPublicKey.indexOf("X: ") + 3; 
 		String xCoord = fullPublicKey.substring(indexX, indexX + 64);
-		xCoord = xCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace 
+		xCoord = xCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unwanted whitespace 
 		String xCoord64 = checkHas64(xCoord); // make sure x-coordinate is 64 chars long
 		
 		int indexY = fullPublicKey.indexOf("Y: ") + 3; 
 		String yCoord = fullPublicKey.substring(indexY, indexY + 64);
-		yCoord = yCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace 
+		yCoord = yCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unwanted whitespace 
 		String yCoord64 = checkHas64(yCoord); // make sure y-coordinate is 64 chars long
 		
 		String[] valuesXY = {xCoord64, yCoord64};
 		
 		return valuesXY;
+	}
+	
+	private static String sign(ECKey key, String input) {
+		byte[] data = input.getBytes();
+
+		Sha256Hash hash = Sha256Hash.create(data);
+		ECDSASignature sig = key.sign(hash, null);
+
+		byte[] bytes = sig.encodeToDER();
+
+		return bytesToHex(bytes);
 	}
 
 }
