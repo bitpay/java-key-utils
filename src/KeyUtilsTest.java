@@ -21,11 +21,11 @@ public class KeyUtilsTest {
 	final String sin = "TeyN4LPrXiG5t2yuSamKqP3ynVk3F52iHrX";
 	final String msg = "This is a test message.";
 
-	final String pem2 = "-----BEGIN EC PRIVATE KEY-----\nMHQCAQEEIGxJZ/H8cJ6rTejjSL/jg+bmvV6P1bh+oQyElxQfztbqoAcGBSuBBAAK\noUQDQgAEAJiwjbqNtzFoL1HvdRRWQgzEDMwN08PJC2bdqTmGHmZ0FfX5t+pOy4Ai\nOuluV4VbIFWZ64onGHXu0A7ejWY/jg==\n-----END EC PRIVATE KEY-----\n";
-	final String pubKeyCompressed2 = "020098B08DBA8DB731682F51EF751456420CC40CCC0DD3C3C90B66DDA939861E66";
-	final String privateKey2 = "6C4967F1FC709EAB4DE8E348BFE383E6E6BD5E8FD5B87EA10C8497141FCED6EA";
-	final String sin2 = "Tf3goZsaKmYcD5YWGv2bz2yifbrM3ogkbMd";
-	final String msg2 = "A 2nd test message.";
+	final String pem2 = "-----BEGIN EC PRIVATE KEY-----\nMHQCAQEEINMwkuB8YAtSTJzUNals8F2lXxsLIncL3rOc8dqRdps8oAcGBSuBBAAK\noUQDQgAEn0OPHdZ0hx+tLRobqDMbC5U12k+BAzynN/wMjzG3axbkgNIFGLim30pf\nh1Lvp4eFVHUydkbP250fTOrJ4zo7RQ==\n-----END EC PRIVATE KEY-----\n";
+	final String pubKeyCompressed2 = "039F438F1DD674871FAD2D1A1BA8331B0B9535DA4F81033CA737FC0C8F31B76B16";
+	final String privateKey2 = "D33092E07C600B524C9CD435A96CF05DA55F1B0B22770BDEB39CF1DA91769B3C";
+	final String sin2 = "TfFW1ePJ5q6EZKBsYUrMGQEbb6z4fBmx6BW";
+	final String msg2 = "Testing by using this message.";
 
 	@Test
 	public void testGeneratePem() throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
@@ -67,9 +67,9 @@ public class KeyUtilsTest {
 		assertTrue(ECKey.verify(msgBytes, hexDerBytes, pubKeyBytes));
 	}
 
-	// *******************************************
-	// 	2nd set of tests
-	// *******************************************
+	// ************************************
+	// *         2nd set of tests         *
+	// ************************************
 
 	@Test
 	public void testGeneratePem2() throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {

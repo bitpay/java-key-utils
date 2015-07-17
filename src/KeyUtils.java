@@ -30,44 +30,27 @@ public class KeyUtils {
 
 	public static String generatePem() throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
 
-		ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
-		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-		KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
-		kpGenerator.initialize(ecSpec, new SecureRandom());
-		KeyPair pair = kpGenerator.generateKeyPair();  // format of keys = PKCS#8, keys are in hex
+		KeyPair pair = createNewKeyPair();
 
-		StringWriter strWriter = new StringWriter();
-		JcaPEMWriter pemWriter = new JcaPEMWriter(strWriter);
+		StringWriter stringWriter = new StringWriter();
+		JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter);
 		pemWriter.writeObject(pair);
 		pemWriter.close();
 
-		String pem = strWriter.toString();
+		String pem = stringWriter.toString();
 		return pem;
 	}
 
 	public static String getCompressPubKeyFromPem(String pem) throws IOException {
 
-		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-		JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+		KeyPair keys = parsePEM(pem);
 
-		StringReader strReader = new StringReader(pem);
-		PEMParser pemParser = new PEMParser(strReader);
-		Object keyObject = pemParser.readObject();
-		pemParser.close();
-
-		KeyPair keys = converter.getKeyPair((PEMKeyPair) keyObject);
-
-		String fullPublicKey = keys.getPublic().toString();
-		int indexX = fullPublicKey.indexOf("X: ") + 3; 
-		int indexY = fullPublicKey.indexOf("Y: ") + 3; 
-
-		String xCoord = fullPublicKey.substring(indexX, indexX + 64);
-		xCoord = xCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace 
-		String xCoord64 = checkHas64(xCoord); // make sure x-coordinate is 64 chars long
-
+		String[] valuesXY = getPublicKeyValuesXY(keys);
+		String xVal = valuesXY[0];
+		String yVal = valuesXY[1];
+		
 		// only need the end of the y-coordinate
-		String yCoordEnd = fullPublicKey.substring(indexY+60).toUpperCase();
-		yCoordEnd = yCoordEnd.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace
+		String yCoordEnd = yVal.substring(60).toUpperCase();
 
 		// Only need final digit of Y-coordinate to check if even or odd
 		// for prefix to compressed public key
@@ -81,26 +64,19 @@ public class KeyUtils {
 			prefix = "02"; // put 02 prefix if y is even
 		}
 
-		return prefix + xCoord64.toUpperCase();
+		return prefix + xVal.toUpperCase();
 
 	}
 
 	public static String getPrivateKeyFromPem(String pem) throws IOException {
 
-		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-		JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+		KeyPair keys = parsePEM(pem);
 
-		StringReader strReader = new StringReader(pem);
-		PEMParser pemParse = new PEMParser(strReader);
-		Object obj = pemParse.readObject();
-		pemParse.close();
-
-		KeyPair kp = converter.getKeyPair((PEMKeyPair) obj);
-
-		String fullPriKey = kp.getPrivate().toString();
-		int startKey = fullPriKey.indexOf("S: ") + 3;
-		String privateKey = fullPriKey.substring(startKey, startKey + 64);
-
+		String fullPrivateKey = keys.getPrivate().toString();
+		int startKeyIndex = fullPrivateKey.indexOf("S: ") + 3;
+		String privateKey = fullPrivateKey.substring(startKeyIndex, startKeyIndex + 64);
+		privateKey = privateKey.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace
+		privateKey = checkHas64(privateKey);
 		return privateKey.toUpperCase();
 	}
 
@@ -141,11 +117,14 @@ public class KeyUtils {
 
 
 	public static String signMsgWithPem(String msg, String pem) throws IOException {
-		String pubKey = getCompressPubKeyFromPem(pem);
-		byte[] pubKeyBytes = hexToBytes(pubKey);
 		String privKey = getPrivateKeyFromPem(pem);
-
-		ECKey key = new ECKey(new BigInteger(privKey, 16), pubKeyBytes, true);
+		
+		KeyPair keys = parsePEM(pem);
+		String[] valuesXY = getPublicKeyValuesXY(keys);
+		String xVal = valuesXY[0];
+		String yVal = valuesXY[1];
+		//ECPoint ecPoint = new ECPoint(new BigInteger(xVal, 16), new BigInteger(yVal, 16));
+		ECKey key = new ECKey(new BigInteger(privKey, 16), new BigInteger(xVal+yVal, 16));
 
 		return sign(key, msg);
 	}
@@ -211,7 +190,50 @@ public class KeyUtils {
 
 		return str2;
 	}
+	
+	private static KeyPair createNewKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
+		
+		ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+		KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
+		kpGenerator.initialize(ecSpec, new SecureRandom());
+		KeyPair pair = kpGenerator.generateKeyPair();  // format of keys = PKCS#8, keys are in hex
+		
+		return pair;
+	}
+	
+	private static KeyPair parsePEM(String pem) throws IOException {
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+		JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
+		StringReader strReader = new StringReader(pem);
+		PEMParser pemParser = new PEMParser(strReader);
+		Object keyObject = pemParser.readObject();
+		pemParser.close();
+
+		KeyPair keys = converter.getKeyPair((PEMKeyPair) keyObject);
+		return keys;
+		
+	}
+	
+	private static String[] getPublicKeyValuesXY(KeyPair keys) {
+		
+		String fullPublicKey = keys.getPublic().toString();
+		
+		int indexX = fullPublicKey.indexOf("X: ") + 3; 
+		String xCoord = fullPublicKey.substring(indexX, indexX + 64);
+		xCoord = xCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace 
+		String xCoord64 = checkHas64(xCoord); // make sure x-coordinate is 64 chars long
+		
+		int indexY = fullPublicKey.indexOf("Y: ") + 3; 
+		String yCoord = fullPublicKey.substring(indexY, indexY + 64);
+		yCoord = yCoord.replaceAll("\n", "").replaceAll(" ", ""); // remove unnecessary whitespace 
+		String yCoord64 = checkHas64(yCoord); // make sure y-coordinate is 64 chars long
+		
+		String[] valuesXY = {xCoord64, yCoord64};
+		
+		return valuesXY;
+	}
 
 }
 
