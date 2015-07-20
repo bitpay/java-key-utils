@@ -188,6 +188,7 @@ public class KeyUtils {
 		KeyPair pair = kpGenerator.generateKeyPair();  // format of keys = PKCS#8, keys are in hex
 		
 		return pair;
+		
 	}
 	
 	private static KeyPair keyPairFromPEM(String pem) throws IOException {
