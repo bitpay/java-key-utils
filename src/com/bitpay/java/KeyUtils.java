@@ -1,3 +1,4 @@
+package com.bitpay.java;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -139,7 +140,7 @@ public class KeyUtils {
 	}
 
 
-	private static byte[] hexToBytes(String hex) throws IllegalArgumentException
+	public static byte[] hexToBytes(String hex) throws IllegalArgumentException
 	{
 		char[] hexArray = hex.toCharArray();
 

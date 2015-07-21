@@ -61,8 +61,8 @@ public class KeyUtilsTest {
 		md.update(msg.getBytes("UTF-8")); 
 		byte[] msgBytes = md.digest();
 
-		byte[] hexDerBytes = KeyUtils.hexToBytes(hexDer);
-		byte[] pubKeyBytes = KeyUtils.hexToBytes(KeyUtils.getCompressPubKeyFromPem(pem));
+		byte[] hexDerBytes = KeyUtilsTest.hexToBytes(hexDer);
+		byte[] pubKeyBytes = KeyUtilsTest.hexToBytes(KeyUtils.getCompressPubKeyFromPem(pem));
 
 		assertTrue(ECKey.verify(msgBytes, hexDerBytes, pubKeyBytes));
 	}
@@ -105,10 +105,36 @@ public class KeyUtilsTest {
 		md.update(msg2.getBytes("UTF-8")); 
 		byte[] msgBytes = md.digest();
 
-		byte[] hexDerBytes = KeyUtils.hexToBytes(hexDer);
-		byte[] pubKeyBytes = KeyUtils.hexToBytes(KeyUtils.getCompressPubKeyFromPem(pem2));
+		byte[] hexDerBytes = KeyUtilsTest.hexToBytes(hexDer);
+		byte[] pubKeyBytes = KeyUtilsTest.hexToBytes(KeyUtils.getCompressPubKeyFromPem(pem2));
 
 		assertTrue(ECKey.verify(msgBytes, hexDerBytes, pubKeyBytes));
+	}
+	
+	
+	// Private methods copied from KeyUtils for testing the signature here
+	
+	private static byte[] hexToBytes(String hex) throws IllegalArgumentException
+	{
+		char[] hexArray = hex.toCharArray();
+
+		if (hex.length() % 2 == 1) {
+			throw new IllegalArgumentException("Error: The binary key cannot have an odd number of digits");
+		}
+
+		byte[] arr = new byte[hex.length() >> 1];
+
+		for (int i = 0; i < hex.length() >> 1; ++i) {
+			arr[i] = (byte)((getHexVal(hexArray[i << 1]) << 4) + (getHexVal(hexArray[(i << 1) + 1])));
+		}
+
+		return arr;
+	}
+	
+	private static int getHexVal(char hex)
+	{
+		int val = (int)hex;
+		return val - (val < 58 ? 48 : (val < 97 ? 55 : 87));
 	}
 
 }
