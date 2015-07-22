@@ -1,5 +1,5 @@
 # java-key-utils
-Java key utils for BitPay key generation
+Java Key Utilities for BitPay Key Generation
 
 ## [Getting Started &raquo;](https://github.com/suraj-masand/java-key-utils/blob/master/GUIDE.md)
 
