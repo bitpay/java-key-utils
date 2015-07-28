@@ -27,7 +27,8 @@ public class KeyUtils {
 
 	// used in private methods at bottom of this file
 	final private static char[] hexArray = "0123456789abcdef".toCharArray();
-
+	final private static String pemPattern = "-----BEGIN EC PRIVATE KEY-----\nMHQCA.*SuBBAAK\noUQDQ.*\n.*\n.*END EC PRIVATE KEY-----\n"; 
+	
 	public static String generatePem() throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
 
 		KeyPair pair = createNewKeyPair();
@@ -41,7 +42,7 @@ public class KeyUtils {
 		return pem;
 	}
 
-	public static String getCompressPubKeyFromPem(String pem) throws IOException {
+	public static String getCompressPubKeyFromPem(String pem) throws IllegalArgumentException, IOException {
 
 		KeyPair keys = keyPairFromPEM(pem);
 
@@ -68,7 +69,7 @@ public class KeyUtils {
 
 	}
 
-	public static String getPrivateKeyFromPem(String pem) throws IOException {
+	public static String getPrivateKeyFromPem(String pem) throws IllegalArgumentException, IOException {
 
 		KeyPair keys = keyPairFromPEM(pem);
 
@@ -80,7 +81,7 @@ public class KeyUtils {
 		return privateKey.toUpperCase();
 	}
 
-	public static String getSinFromPem(String pem) throws NoSuchAlgorithmException, IOException {
+	public static String getSinFromPem(String pem) throws IllegalArgumentException, NoSuchAlgorithmException, IOException {
 
 		String hexPubKey = getCompressPubKeyFromPem(pem);	
 
@@ -116,7 +117,11 @@ public class KeyUtils {
 	}
 
 
-	public static String signMsgWithPem(String msg, String pem) throws IOException {
+	public static String signMsgWithPem(String msg, String pem) throws IllegalArgumentException, IOException {
+		
+		if (msg == null || msg.isEmpty())
+			throw new IllegalArgumentException("Message cannot be empty.");
+		
 		String privKey = getPrivateKeyFromPem(pem);
 		String pubKey = getCompressPubKeyFromPem(pem);
 	
@@ -191,7 +196,18 @@ public class KeyUtils {
 		
 	}
 	
-	private static KeyPair keyPairFromPEM(String pem) throws IOException {
+	private static void checkValidPEM(String pem) throws IllegalArgumentException {
+		boolean validPem = pem.matches(pemPattern);
+		if (!validPem) {
+			throw new IllegalArgumentException("PEM is not in a valid format.");
+		}
+			
+	}
+	
+	private static KeyPair keyPairFromPEM(String pem) throws IllegalArgumentException, IOException {
+		
+		checkValidPEM(pem);
+		
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 		JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
@@ -236,8 +252,3 @@ public class KeyUtils {
 	}
 
 }
-
-
-
-
-
