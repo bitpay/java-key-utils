@@ -1,6 +1,7 @@
 # BitPay Key Utilities for Java
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 [![Travis](https://img.shields.io/travis/bitpay/java-key-utils.svg?style=flat-square)](https://travis-ci.org/bitpay/java-key-utils)
+[![Maven Central](https://img.shields.io/maven-central/v/com.bitpay/keyutils.svg?style=flat-square)](http://repo1.maven.org/maven2/com/bitpay/keyutils/)
 [![Coverage Status](https://coveralls.io/repos/bitpay/java-key-utils/badge.svg?branch=master&service=github)](https://coveralls.io/github/bitpay/java-key-utils?branch=master)
 
 Provides required cryptographic functions to use the BitPay 2.0 API.
